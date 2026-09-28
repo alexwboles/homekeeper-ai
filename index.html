@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HomeKeeper AI — never forget home maintenance again</title>
+<meta name="description" content="AI home maintenance planner: personalized 12-month checklists, cost-of-neglect warnings, streaks. 100% local, no account needed.">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">🏠 HomeKeeper <span class="ai">AI</span></div>
+  <div class="tagline">Small tasks now beat expensive repairs later.</div>
+</header>
+
+<main>
+  <!-- Profile -->
+  <section class="card" id="profileSection">
+    <h2>1 · Tell us about your home</h2>
+    <p class="muted">Your 12-month plan is built from 60+ maintenance rules matched to exactly this profile. Everything stays in your browser.</p>
+    <form id="profileForm">
+      <div class="grid">
+        <label>Home type
+          <select id="homeType">
+            <option value="house">House</option>
+            <option value="condo">Condo / Townhouse</option>
+            <option value="apartment">Apartment</option>
+          </select>
+        </label>
+        <label>Heating
+          <select id="heating">
+            <option value="forced-air">Forced air (furnace)</option>
+            <option value="heat-pump">Heat pump</option>
+            <option value="baseboard">Baseboard electric</option>
+            <option value="boiler">Boiler</option>
+            <option value="radiator">Radiators</option>
+          </select>
+        </label>
+        <label>Climate
+          <select id="climate">
+            <option value="cold">Cold — freezing winters</option>
+            <option value="mild">Mild — some frost</option>
+            <option value="warm">Warm — rarely freezes</option>
+          </select>
+        </label>
+      </div>
+      <fieldset>
+        <legend>Features your home has</legend>
+        <div class="checks">
+          <label><input type="checkbox" id="f_ac"> Air conditioning</label>
+          <label><input type="checkbox" id="f_yard"> Yard / garden</label>
+          <label><input type="checkbox" id="f_pool"> Pool</label>
+          <label><input type="checkbox" id="f_fireplace"> Fireplace / wood stove</label>
+          <label><input type="checkbox" id="f_basement"> Basement</label>
+          <label><input type="checkbox" id="f_garage"> Garage</label>
+          <label><input type="checkbox" id="f_deck"> Deck</label>
+          <label><input type="checkbox" id="f_sprinkler"> Sprinkler system</label>
+          <label><input type="checkbox" id="f_softener"> Water softener</label>
+          <label><input type="checkbox" id="f_crawlspace"> Crawl space</label>
+          <label><input type="checkbox" id="f_hardwood"> Hardwood floors</label>
+        </div>
+      </fieldset>
+      <div class="row">
+        <button type="submit" class="primary">Build my 12-month plan</button>
+        <button type="button" id="resetProfile" class="ghost">Start over</button>
+        <span id="profileMsg" class="ok"></span>
+      </div>
+    </form>
+  </section>
+
+  <!-- This week -->
+  <section class="card" id="weekSection" style="display:none">
+    <div class="week-head">
+      <div>
+        <h2>2 · <span id="weekTitle">This month</span></h2>
+        <div class="muted"><span id="weekCount"></span> · <span id="weekProgress"></span></div>
+      </div>
+      <div id="streak" class="streak"></div>
+    </div>
+    <div class="progress"><div id="weekBar"></div></div>
+    <div id="weekTasks"></div>
+  </section>
+
+  <!-- 12-month plan -->
+  <section class="card" id="planSection" style="display:none">
+    <h2>3 · Your 12-month plan</h2>
+    <p class="muted" id="planSummary"></p>
+    <div id="monthTabs" class="tabs" role="tablist"></div>
+    <div id="monthBody"></div>
+  </section>
+
+  <!-- Custom tasks -->
+  <section class="card" id="customSection" style="display:none">
+    <h2>4 · Your own tasks</h2>
+    <p class="muted">Add anything the planner doesn't know about — it joins your calendar automatically.</p>
+    <div class="grid">
+      <label>Task <input type="text" id="customTitle" placeholder="e.g. Service the piano" maxlength="80"></label>
+      <label>Details <input type="text" id="customDesc" placeholder="What exactly to do" maxlength="200"></label>
+      <label>Effort <input type="text" id="customEffort" placeholder="e.g. 30 min" maxlength="30"></label>
+    </div>
+    <div id="customMonths" class="mchecks"></div>
+    <div class="row"><button type="button" id="addCustom" class="primary">Add task</button></div>
+    <div id="customList"></div>
+  </section>
+
+  <footer class="muted center">
+    HomeKeeper AI runs entirely in your browser — no account, no tracking, no data leaves this device.
+  </footer>
+</main>
+
+<script src="js/rules.js"></script>
+<script src="js/planner.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
