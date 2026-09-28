@@ -92,12 +92,12 @@
     d.textContent = t.desc;
     var meta = document.createElement('div');
     meta.className = 'task-meta';
-    meta.textContent = (t.effort ? '⏱ ' + t.effort : '');
+    meta.textContent = t.effort || '';
     body.appendChild(h); body.appendChild(d); body.appendChild(meta);
     if (t.neglect) {
       var n = document.createElement('div');
       n.className = 'neglect';
-      n.textContent = '⚠ ' + t.neglect;
+      n.textContent = t.neglect;
       body.appendChild(n);
     }
     label.appendChild(box); label.appendChild(body);
@@ -144,7 +144,7 @@
   function renderStreak() {
     var s = HK.streakLength(weeksDone, HK.weekKey(new Date()));
     var badge = el('streak');
-    badge.textContent = s > 0 ? '🔥 ' + s + '-week streak — your home thanks you' : 'No streak yet — finish this month\'s list to start one';
+    badge.textContent = s > 0 ? s + '-week streak — your home thanks you' : 'No streak yet — finish this month\'s list to start one';
     badge.classList.toggle('hot', s > 0);
   }
 
@@ -232,7 +232,7 @@
       profile = readForm();
       save(LS_PROFILE, profile);
       var msg = el('profileMsg');
-      msg.textContent = '✓ Home profile saved — your 12-month plan is ready below.';
+      msg.textContent = 'Home profile saved — your 12-month plan is ready below.';
       setTimeout(function () { msg.textContent = ''; }, 4000);
       renderAll();
       document.getElementById('weekSection').scrollIntoView();
