@@ -1,0 +1,83 @@
+:root {
+  --bg: #f6f4ee;
+  --card: #ffffff;
+  --ink: #2b2a26;
+  --muted: #7a766c;
+  --accent: #2f6f4f;
+  --accent-soft: #e7f0e9;
+  --warn: #b3541e;
+  --warn-soft: #fdf1e7;
+  --line: #e8e4d9;
+  --radius: 14px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+}
+.topbar {
+  background: var(--ink); color: #fff; padding: 22px 20px; text-align: center;
+}
+.brand { font-size: 26px; font-weight: 700; letter-spacing: 0.5px; }
+.brand .ai {
+  background: var(--accent); border-radius: 8px; padding: 2px 8px; font-size: 18px; margin-left: 4px;
+}
+.tagline { color: #cfccc2; margin-top: 4px; font-size: 14px; }
+main { max-width: 860px; margin: 0 auto; padding: 20px 16px 60px; }
+.card {
+  background: var(--card); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 22px; margin-bottom: 18px;
+  box-shadow: 0 2px 10px rgba(60, 55, 40, 0.05);
+}
+h2 { margin: 0 0 10px; font-size: 20px; }
+.muted { color: var(--muted); font-size: 14px; }
+.center { text-align: center; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin: 12px 0; }
+label { font-size: 14px; font-weight: 600; display: block; }
+select, input[type="text"] {
+  width: 100%; margin-top: 6px; padding: 10px 12px; font-size: 15px;
+  border: 1px solid var(--line); border-radius: 10px; background: #fff; color: var(--ink);
+}
+fieldset { border: 1px solid var(--line); border-radius: 10px; margin: 12px 0; padding: 12px 14px; }
+legend { font-size: 13px; font-weight: 700; color: var(--muted); padding: 0 6px; }
+.checks { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.checks label, .mchk { font-weight: 500; display: flex; align-items: center; gap: 8px; }
+.checks input, .mchk input { width: 18px; height: 18px; accent-color: var(--accent); }
+.row { display: flex; align-items: center; gap: 12px; margin-top: 14px; flex-wrap: wrap; }
+button { cursor: pointer; font-size: 15px; border-radius: 10px; padding: 10px 18px; border: 1px solid var(--line); background: #fff; }
+button.primary { background: var(--accent); color: #fff; border: none; font-weight: 700; }
+button.primary:hover { filter: brightness(1.08); }
+button.ghost { background: transparent; color: var(--muted); }
+button.danger { background: transparent; color: #a33; border-color: #e5b8b8; font-size: 13px; padding: 6px 12px; }
+.ok { color: var(--accent); font-weight: 600; font-size: 14px; }
+
+.week-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+.streak { background: var(--accent-soft); border-radius: 999px; padding: 8px 14px; font-size: 14px; font-weight: 600; color: var(--accent); }
+.streak.hot { background: #fff3e2; color: var(--warn); }
+.progress { height: 10px; background: var(--line); border-radius: 999px; overflow: hidden; margin: 12px 0; }
+#weekBar { height: 100%; width: 0; background: var(--accent); border-radius: 999px; transition: width 0.3s; }
+
+.task { border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin: 10px 0; background: #fff; }
+.task label { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; font-weight: 400; }
+.task input[type="checkbox"] { width: 22px; height: 22px; margin-top: 2px; accent-color: var(--accent); flex-shrink: 0; }
+.task.done { opacity: 0.62; }
+.task.done .task-title { text-decoration: line-through; }
+.task-title { font-weight: 700; font-size: 15px; }
+.task-desc { font-size: 14px; color: #4a473f; margin-top: 4px; }
+.task-meta { font-size: 13px; color: var(--muted); margin-top: 6px; }
+.neglect { background: var(--warn-soft); border-left: 3px solid var(--warn); padding: 8px 10px; margin-top: 8px; font-size: 13px; border-radius: 0 8px 8px 0; }
+.empty { color: var(--muted); font-style: italic; }
+
+.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+.tab { font-size: 13px; padding: 8px 10px; }
+.tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+
+.mchecks { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 10px 0; }
+.custom-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; margin: 8px 0; font-size: 14px; }
+footer { margin-top: 30px; font-size: 13px; }
+
+@media (max-width: 560px) {
+  .card { padding: 16px; }
+  .brand { font-size: 22px; }
+}
