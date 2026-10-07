@@ -16,8 +16,8 @@
   --muted: #8a8577;
   --line: #e5ddc8;
   --line-soft: #efe9d8;
-  --radius: 14px;
-  --radius-sm: 9px;
+  --radius: 0;
+  --radius-sm: 0;
   --shadow: 0 1px 2px rgba(60, 50, 20, .06), 0 12px 30px rgba(60, 50, 20, .07);
   --shadow-sm: 0 1px 2px rgba(60, 50, 20, .08);
   --amber: #b45309; --amber-soft: #fef3e2;
@@ -62,7 +62,7 @@ h3 { font-family: var(--serif); font-size: 20px; font-weight: 600; margin: 18px 
 }
 .brand em {
   font-style: normal; font-family: var(--sans); font-size: 10.5px; font-weight: 700; letter-spacing: 1.4px;
-  color: #dff0dc; border: 1px solid rgba(255,255,255,.4); border-radius: 6px; padding: 3px 8px; margin-left: 2px;
+  color: #dff0dc; border: 1px solid rgba(255,255,255,.4); border-radius: 0; padding: 3px 8px; margin-left: 2px;
 }
 .tagline { color: #cfe3cd; font-size: 14px; margin: 0; font-style: italic; font-family: var(--serif); font-size: 16px; }
 
@@ -76,7 +76,7 @@ main.wrap { padding-top: 34px; padding-bottom: 60px; }
 .card > h2:first-of-type { margin-bottom: 4px; }
 .card > h2::after, .week-head h2::after {
   content: ""; display: block; width: 52px; height: 5px;
-  background: var(--emerald); border-radius: 3px; margin-top: 9px;
+  background: var(--emerald); border-radius: 0; margin-top: 9px;
 }
 .card .muted { font-size: 14.5px; }
 .chapter-rule {
@@ -84,7 +84,7 @@ main.wrap { padding-top: 34px; padding-bottom: 60px; }
 }
 .chapter-rule::after {
   content: ""; position: absolute; left: 0; top: -2.5px; width: 56px; height: 6px;
-  background: var(--emerald); border-radius: 3px;
+  background: var(--emerald); border-radius: 0;
 }
 
 /* ---------- profile form ---------- */
@@ -100,7 +100,7 @@ input:focus, select:focus { border-color: var(--emerald); outline: none; box-sha
 fieldset { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 16px 18px; margin: 6px 0 18px; }
 legend { font-weight: 700; font-size: 13.5px; color: var(--ink-soft); padding: 0 8px; }
 .checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px 14px; }
-.checks label { display: flex; align-items: center; gap: 10px; margin: 0; font-weight: 500; padding: 7px 8px; border-radius: 8px; cursor: pointer; }
+.checks label { display: flex; align-items: center; gap: 10px; margin: 0; font-weight: 500; padding: 7px 8px; border-radius: 0; cursor: pointer; }
 .checks label:hover { background: var(--emerald-soft); }
 .checks input[type="checkbox"] { width: 19px; height: 19px; accent-color: var(--emerald); flex: none; margin: 0; }
 .row { display: flex; gap: 12px; align-items: center; margin-top: 8px; flex-wrap: wrap; }
@@ -122,16 +122,16 @@ legend { font-weight: 700; font-size: 13.5px; color: var(--ink-soft); padding: 0
 .week-head .muted { font-size: 14px; }
 .streak {
   font-size: 13.5px; font-weight: 700; color: var(--emerald-deep);
-  background: var(--emerald-soft); border: 1px solid #cfe0c9; border-radius: 999px;
+  background: var(--emerald-soft); border: 1px solid #cfe0c9; border-radius: 0;
   padding: 9px 18px; white-space: nowrap;
 }
 .streak.hot { background: var(--emerald); color: #fff; border-color: var(--emerald-deep); box-shadow: 0 4px 12px rgba(22,101,52,.3); }
 .progress {
-  height: 10px; background: var(--paper-deep); border-radius: 999px; overflow: hidden;
+  height: 10px; background: var(--paper-deep); border-radius: 0; overflow: hidden;
   margin-bottom: 20px; border: 1px solid var(--line-soft);
 }
 #weekBar {
-  height: 100%; width: 0; background: var(--emerald); border-radius: 999px;
+  height: 100%; width: 0; background: var(--emerald); border-radius: 0;
   transition: width .5s cubic-bezier(.2,.7,.25,1);
 }
 
@@ -157,7 +157,7 @@ legend { font-weight: 700; font-size: 13.5px; color: var(--ink-soft); padding: 0
 .neglect {
   margin-top: 8px; font-size: 13px; color: var(--amber);
   background: var(--amber-soft); border-left: 3px solid var(--amber);
-  border-radius: 0 8px 8px 0; padding: 8px 12px; max-width: 640px;
+  border-radius: 0; padding: 8px 12px; max-width: 640px;
 }
 
 /* ---------- month ribbon ---------- */
@@ -167,7 +167,7 @@ legend { font-weight: 700; font-size: 13.5px; color: var(--ink-soft); padding: 0
 }
 .tab {
   flex: none; border: 1px solid var(--line); background: var(--card); color: var(--ink-soft);
-  border-radius: 999px; padding: 8px 16px; font-size: 13.5px; font-weight: 600;
+  border-radius: 0; padding: 8px 16px; font-size: 13.5px; font-weight: 600;
   transition: all .15s; border-top: 3px solid var(--line);
 }
 /* seasonal tints by month position */
@@ -187,7 +187,7 @@ legend { font-weight: 700; font-size: 13.5px; color: var(--ink-soft); padding: 0
 .mchk {
   display: inline-flex; align-items: center; gap: 7px; margin: 0;
   font-weight: 500; font-size: 13.5px; padding: 7px 12px; border: 1px solid var(--line);
-  border-radius: 999px; cursor: pointer; background: #fff;
+  border-radius: 0; cursor: pointer; background: #fff;
 }
 .mchk input { width: 15px; height: 15px; accent-color: var(--emerald); margin: 0; }
 .mchk:has(input:checked) { background: var(--emerald-soft); border-color: var(--emerald); color: var(--emerald-deep); font-weight: 700; }
@@ -199,7 +199,7 @@ legend { font-weight: 700; font-size: 13.5px; color: var(--ink-soft); padding: 0
 }
 .custom-row .danger {
   border: 1px solid var(--line); background: #fff; color: var(--red);
-  border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 600; flex: none;
+  border-radius: 0; padding: 7px 14px; font-size: 13px; font-weight: 600; flex: none;
 }
 .custom-row .danger:hover { background: var(--red-soft); border-color: #efc4c1; }
 
