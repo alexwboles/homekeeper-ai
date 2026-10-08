@@ -92,6 +92,57 @@ flow('streak math across year boundary', function () {
   assert(HK.streakLength([], k1) === 0, 'streak should be 0');
 });
 
+// 8. Skip flow: skipped tasks count separately and are excluded from catch-up.
+flow('skip flow: skip -> unskip -> progress math', function () {
+  var plan = HK.generatePlan({ homeType: 'house', heating: 'forced-air', climate: 'cold', ac: true, yard: true });
+  var year = 2026;
+  var jan = plan[0].tasks, feb = plan[1].tasks;
+  var checks = {}, skipped = {};
+  skipped[HK.taskCheckId(jan[0], year)] = true;
+  skipped[HK.taskCheckId(jan[1], year)] = true;
+  checks[HK.taskCheckId(jan[2], year)] = true;
+  var p = HK.monthProgress(jan, checks, skipped, year);
+  assert(p.done === 1 && p.skipped === 2, 'expected 1 done + 2 skipped, got ' + JSON.stringify(p));
+  var cu = HK.catchUp(plan, checks, skipped, year, 2);
+  var janMissed = cu.filter(function (x) { return x.monthName === 'January'; });
+  assert(janMissed.length === jan.length - 3, 'catch-up should exclude done+skipped');
+  // unskip one, catch-up grows
+  delete skipped[HK.taskCheckId(jan[0], year)];
+  var cu2 = HK.catchUp(plan, checks, skipped, year, 2);
+  assert(cu2.filter(function (x) { return x.monthName === 'January'; }).length === jan.length - 2, 'unskip returns task to catch-up');
+});
+
+// 9. Year overview + catch-up end-to-end: a busy homeowner's mid-year check.
+flow('mid-year review: year progress + catch-up report', function () {
+  var plan = HK.generatePlan({ homeType: 'house', heating: 'forced-air', climate: 'cold', ac: true, yard: true });
+  var year = 2026, currentMonth = 6; // end of June
+  var checks = {};
+  // homeowner did all of January and half of February
+  plan[0].tasks.forEach(function (t) { checks[HK.taskCheckId(t, year)] = true; });
+  plan[1].tasks.slice(0, Math.floor(plan[1].tasks.length / 2)).forEach(function (t) { checks[HK.taskCheckId(t, year)] = true; });
+  var yp = HK.yearProgress(plan, checks, {}, year);
+  var totalDone = yp.reduce(function (n, m) { return n + m.done; }, 0);
+  assert(totalDone === plan[0].tasks.length + Math.floor(plan[1].tasks.length / 2), 'year progress undercounts');
+  var cu = HK.catchUp(plan, checks, {}, year, currentMonth);
+  assert(cu.length > 0, 'catch-up should list missed spring tasks');
+  assert(cu.every(function (x) {
+    return ['January','February','March','April','May'].indexOf(x.monthName) !== -1;
+  }), 'catch-up must only contain past months');
+  console.log('   (catch-up lists ' + cu.length + ' missed tasks before June)');
+});
+
+// 10. Search flow: find a task, land in the right month.
+flow('search flow: gutter tasks found with month names', function () {
+  var plan = HK.generatePlan({ homeType: 'house', heating: 'forced-air', climate: 'cold', ac: true, yard: true });
+  var hits = HK.searchTasks(plan, 'gutter');
+  assert(hits.length > 0, 'expected gutter hits');
+  var months = {};
+  hits.forEach(function (x) { months[x.monthName] = true; });
+  assert(months['April'] || months['October'], 'gutter tasks should be seasonal, got: ' + Object.keys(months).join(','));
+  var smoke = HK.searchTasks(plan, 'smoke detector');
+  assert(smoke.length > 0 && smoke[0].monthName, 'smoke detector search works');
+});
+
 if (failures) { console.log('E2E: ' + failures + ' flow(s) FAILED'); process.exit(1); }
-console.log('E2E: 7/7 flows passed');
+console.log('E2E: 10/10 flows passed');
 EOF

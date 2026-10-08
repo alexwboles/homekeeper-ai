@@ -11,6 +11,11 @@ The average homeowner faces $1,000+ in surprise repairs every year, and most of 
 1. **Describe your home** — type, heating, climate, and features (pool, yard, fireplace, basement, garage…)
 2. **Get a 12-month plan** — every task scheduled in the right month, filtered to only what applies to *your* home
 3. **Work the list** — check off tasks, see plain-language "cost of neglect" warnings (⚠ *skipping this risks a $250–$600 repair*), build a streak
+4. **Skip a task** — mark a task as skipped for the month (it dims, drops out of progress and catch-up, and can be un-skipped)
+5. **Year-at-a-glance progress** — month-by-month completion bars above the plan, with done/skipped counts
+6. **Catch-up list** — incomplete tasks from earlier months surface automatically so nothing silently vanishes
+7. **Search the year** — find any task across all 12 months instantly
+8. **Print checklist** — a print-clean view of the current month's list
 
 If `OPENAI_API_KEY` is ever set in a future hosted version, plans can be narrated and customized by an LLM — but the planner works 100% offline today with zero keys.
 

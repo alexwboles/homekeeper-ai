@@ -80,16 +80,24 @@
         <h2>2 · <span id="weekTitle">This month</span></h2>
         <div class="muted"><span id="weekCount"></span> · <span id="weekProgress"></span></div>
       </div>
-      <div id="streak" class="streak"></div>
+      <div class="week-actions">
+        <button type="button" id="printWeek" class="ghost">Print checklist</button>
+        <div id="streak" class="streak"></div>
+      </div>
     </div>
     <div class="progress"><div id="weekBar"></div></div>
     <div id="weekTasks"></div>
+    <div id="catchUp" class="catchup"></div>
   </section>
 
   <!-- 12-month plan -->
   <section class="card" id="planSection" style="display:none">
     <h2>3 · Your 12-month plan</h2>
     <p class="muted" id="planSummary"></p>
+    <div id="yearOverview" class="yov"></div>
+    <div class="plan-tools">
+      <input type="search" id="planSearch" placeholder="Search all tasks — e.g. gutter, filter, smoke…" aria-label="Search all tasks">
+    </div>
     <div id="monthTabs" class="tabs" role="tablist"></div>
     <div id="monthBody"></div>
   </section>

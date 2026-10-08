@@ -6,6 +6,7 @@
   var LS_CHECKS = 'hk_checks_v1';   // { "taskId:YYYY-M": true }
   var LS_WEEKS = 'hk_weeks_v1';     // ["2026-W39", ...] completed weeks
   var LS_CUSTOM = 'hk_custom_v1';   // [{id,title,desc,effort,neglect,months:[]}]
+  var LS_SKIPPED = 'hk_skipped_v1'; // { "taskId:YYYY-M": true } skipped this month
 
   function load(k, fb) {
     try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }
@@ -17,6 +18,7 @@
   var checks = load(LS_CHECKS, {});
   var weeksDone = load(LS_WEEKS, []);
   var customTasks = load(LS_CUSTOM, []);
+  var skipped = load(LS_SKIPPED, {});
 
   function el(id) { return document.getElementById(id); }
 
@@ -67,26 +69,28 @@
     renderStreak();
   }
 
-  function taskCard(t, year) {
+  function taskCard(t, year, monthLabel) {
     var cid = checkId(t, year);
     var done = !!checks[cid];
+    var isSkipped = !done && !!skipped[cid];
     var div = document.createElement('div');
-    div.className = 'task' + (done ? ' done' : '');
+    div.className = 'task' + (done ? ' done' : '') + (isSkipped ? ' skipped' : '');
     var label = document.createElement('label');
     var box = document.createElement('input');
     box.type = 'checkbox';
     box.checked = done;
+    box.disabled = isSkipped;
     box.setAttribute('aria-label', 'Mark done: ' + t.title);
     box.addEventListener('change', function () {
-      if (box.checked) checks[cid] = true; else delete checks[cid];
+      if (box.checked) { checks[cid] = true; delete skipped[cid]; save(LS_SKIPPED, skipped); }
+      else delete checks[cid];
       save(LS_CHECKS, checks);
-      div.classList.toggle('done', box.checked);
-      updateWeekProgress();
+      renderAll();
     });
     var body = document.createElement('div');
     var h = document.createElement('div');
     h.className = 'task-title';
-    h.textContent = t.title + (t.custom ? ' (custom)' : '');
+    h.textContent = t.title + (t.custom ? ' (custom)' : '') + (monthLabel ? '  · ' + monthLabel : '');
     var d = document.createElement('div');
     d.className = 'task-desc';
     d.textContent = t.desc;
@@ -100,8 +104,26 @@
       n.textContent = t.neglect;
       body.appendChild(n);
     }
+    if (isSkipped) {
+      var sk = document.createElement('div');
+      sk.className = 'skipnote';
+      sk.textContent = 'Skipped this month';
+      body.appendChild(sk);
+    }
     label.appendChild(box); label.appendChild(body);
     div.appendChild(label);
+    var skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'skipbtn';
+    skipBtn.textContent = isSkipped ? 'Unskip' : 'Skip';
+    skipBtn.title = isSkipped ? 'Bring this task back' : 'Skip for this month';
+    skipBtn.addEventListener('click', function () {
+      if (isSkipped) delete skipped[cid];
+      else { skipped[cid] = true; delete checks[cid]; }
+      save(LS_SKIPPED, skipped); save(LS_CHECKS, checks);
+      renderAll();
+    });
+    div.appendChild(skipBtn);
     return div;
   }
 
@@ -120,7 +142,20 @@
     }
     tasks.forEach(function (t) { wrap.appendChild(taskCard(t, year)); });
     el('weekCount').textContent = tasks.length + ' task' + (tasks.length === 1 ? '' : 's');
+    renderCatchUp(months, year, m);
     updateWeekProgress();
+  }
+
+  // Incomplete tasks from earlier months, so they don't silently vanish.
+  function renderCatchUp(months, year, currentMonth) {
+    var wrap = el('catchUp');
+    var items = HK.catchUp(months, checks, skipped, year, currentMonth);
+    if (!items.length) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    var h = document.createElement('h3');
+    h.textContent = 'Catch up — missed from earlier months (' + items.length + ')';
+    wrap.appendChild(h);
+    items.forEach(function (x) { wrap.appendChild(taskCard(x.task, year, x.monthName)); });
   }
 
   function updateWeekProgress() {
@@ -129,7 +164,12 @@
     var m = now.getMonth() + 1;
     var tasks = plan()[m - 1].tasks;
     var doneCount = tasks.filter(function (t) { return checks[checkId(t, year)]; }).length;
-    el('weekProgress').textContent = doneCount + ' of ' + tasks.length + ' done';
+    var skipCount = tasks.filter(function (t) {
+      var cid = checkId(t, year);
+      return !checks[cid] && skipped[cid];
+    }).length;
+    el('weekProgress').textContent = doneCount + ' of ' + tasks.length + ' done' +
+      (skipCount ? ' · ' + skipCount + ' skipped' : '');
     var bar = el('weekBar');
     bar.style.width = (tasks.length ? Math.round(doneCount / tasks.length * 100) : 0) + '%';
     // Mark week complete when everything is checked.
@@ -153,6 +193,7 @@
     var now = new Date();
     var year = now.getFullYear();
     var months = plan();
+    renderYearOverview(months, year);
     var tabs = el('monthTabs');
     var body = el('monthBody');
     tabs.innerHTML = '';
@@ -164,6 +205,7 @@
       b.textContent = mo.name.slice(0, 3) + ' (' + mo.tasks.length + ')';
       b.addEventListener('click', function () {
         active = idx;
+        el('planSearch').value = '';
         Array.prototype.forEach.call(tabs.children, function (c, i) {
           c.classList.toggle('active', i === active);
         });
@@ -189,6 +231,46 @@
     showMonth(active);
     var total = months.reduce(function (n, mo) { return n + mo.tasks.length; }, 0);
     el('planSummary').textContent = 'Your personalized year: ' + total + ' maintenance tasks across 12 months.';
+  }
+
+  // Month-by-month completion strip above the plan tabs.
+  function renderYearOverview(months, year) {
+    var prog = HK.yearProgress(months, checks, skipped, year);
+    var wrap = el('yearOverview');
+    wrap.innerHTML = prog.map(function (p) {
+      var pct = p.total ? Math.round(p.done / p.total * 100) : 100;
+      var label = p.done + '/' + p.total + (p.skipped ? ' · ' + p.skipped + ' skipped' : '');
+      return '<div class="yom" title="' + p.name + ': ' + label + '">' +
+        '<span class="yom-name">' + p.name.slice(0, 3) + '</span>' +
+        '<span class="yom-bar"><span style="width:' + pct + '%"></span></span>' +
+        '<span class="yom-num">' + label + '</span></div>';
+    }).join('');
+  }
+
+  // Search every month's tasks; results replace the month view until cleared.
+  function renderPlanSearch(q) {
+    var now = new Date();
+    var year = now.getFullYear();
+    var months = plan();
+    var tabs = el('monthTabs');
+    var body = el('monthBody');
+    var hits = HK.searchTasks(months, q);
+    tabs.innerHTML = '';
+    body.innerHTML = '';
+    var h = document.createElement('h3');
+    h.textContent = hits.length + ' task' + (hits.length === 1 ? '' : 's') +
+      ' matching "' + q + '" across the year';
+    body.appendChild(h);
+    hits.forEach(function (x) { body.appendChild(taskCard(x.task, year, x.monthName)); });
+    var clear = document.createElement('button');
+    clear.type = 'button';
+    clear.className = 'ghost';
+    clear.textContent = 'Clear search';
+    clear.addEventListener('click', function () {
+      el('planSearch').value = '';
+      renderPlan();
+    });
+    body.appendChild(clear);
   }
 
   // ---------- Custom tasks ----------
@@ -238,8 +320,9 @@
       document.getElementById('weekSection').scrollIntoView();
     });
     el('resetProfile').addEventListener('click', function () {
-      profile = null; checks = {}; weeksDone = [];
+      profile = null; checks = {}; weeksDone = []; skipped = {};
       save(LS_PROFILE, null); save(LS_CHECKS, checks); save(LS_WEEKS, weeksDone);
+      save(LS_SKIPPED, skipped);
       fillForm(); renderAll();
     });
     el('addCustom').addEventListener('click', function () {
@@ -255,6 +338,12 @@
       el('customTitle').value = ''; el('customDesc').value = ''; el('customEffort').value = '';
       renderCustom(); renderPlan(); renderWeek();
     });
+    el('planSearch').addEventListener('input', function (e) {
+      var q = e.target.value.trim();
+      if (q) renderPlanSearch(q);
+      else renderPlan();
+    });
+    el('printWeek').addEventListener('click', function () { window.print(); });
     renderAll();
   }
 

@@ -223,3 +223,33 @@ footer { padding: 30px 20px 10px; }
   .week-head { flex-direction: column; }
   .streak { align-self: flex-start; }
 }
+
+/* ---------- skip, year overview, search, catch-up, print ---------- */
+.task { position: relative; }
+.skipbtn {
+  position: absolute; right: 6px; top: 10px;
+  font-size: 12px; padding: 3px 10px; border: 1px solid var(--line);
+  background: #fff; color: var(--muted); border-radius: 0; cursor: pointer;
+}
+.skipbtn:hover { border-color: var(--emerald); color: var(--emerald-deep); }
+.task.skipped .task-title { color: var(--muted); font-style: italic; }
+.task.skipped .task-desc { color: #b3ac99; }
+.skipnote { font-size: 12.5px; color: var(--muted); font-style: italic; margin-top: 4px; }
+.week-actions { display: flex; gap: 12px; align-items: center; }
+.yov { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin: 14px 0 18px; }
+.yom { border: 1px solid var(--line-soft); padding: 6px 8px; font-size: 12px; }
+.yom-name { font-weight: 700; color: var(--ink-soft); }
+.yom-bar { display: block; height: 6px; background: var(--paper-deep); margin: 5px 0 4px; }
+.yom-bar span { display: block; height: 100%; background: var(--emerald); }
+.yom-num { color: var(--muted); }
+.plan-tools { margin: 0 0 14px; }
+.plan-tools input { max-width: 380px; }
+.catchup { margin-top: 22px; border-top: 2px solid var(--line); padding-top: 14px; }
+.catchup h3 { color: var(--rust, #9a4a1f); }
+@media print {
+  body > header, #profileSection, #planSection, #customSection, main > footer { display: none !important; }
+  main .wrap, main { max-width: none; }
+  .card { box-shadow: none; }
+  .skipbtn, .week-actions #printWeek, .catchup { display: none !important; }
+  .task { break-inside: avoid; }
+}
