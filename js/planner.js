@@ -149,6 +149,106 @@
     return out;
   }
 
+  // ---- neglect-cost parsing: "a $250–$600 repair" -> {low:250, high:600} ----
+  // Returns the largest dollar range in the text, or null when none found.
+  function parseNeglectDollars(text) {
+    var re = /\$\s*([\d,]+)(?:\s*[-\u2013\u2014]\s*\$\s*([\d,]+))?/g;
+    var best = null, m;
+    while ((m = re.exec(String(text || ''))) !== null) {
+      var lo = parseInt(m[1].replace(/,/g, ''), 10);
+      var hi = m[2] ? parseInt(m[2].replace(/,/g, ''), 10) : lo;
+      if (isNaN(lo)) continue;
+      var r = { low: Math.min(lo, hi), high: Math.max(lo, hi) };
+      if (!best || r.high > best.high) best = r;
+    }
+    return best;
+  }
+
+  // Effort strings -> minutes. Null when the effort is unknowable ("book a visit").
+  function effortMinutes(effort) {
+    var s = String(effort || '').toLowerCase().trim();
+    if (!s) return null;
+    if (/book a visit|call a pro|hire/.test(s)) return null;
+    var m;
+    if ((m = /(\d+)\s*[-\u2013\u2014]\s*(\d+)\s*hour/.exec(s))) return parseInt(m[1], 10) * 60;
+    if ((m = /(\d+(?:\.\d+)?)\s*hour/.exec(s))) return Math.round(parseFloat(m[1]) * 60);
+    if ((m = /(\d+)\s*min/.exec(s))) return parseInt(m[1], 10);
+    if (/half day/.test(s)) return 240;
+    if (/full day|all day/.test(s)) return 480;
+    return null;
+  }
+
+  function taskDone(checks, task, year) { return !!(checks && checks[taskCheckId(task, year)]); }
+  function taskSkipped(checks, skipped, task, year) {
+    var cid = taskCheckId(task, year);
+    return !(checks && checks[cid]) && !!(skipped && skipped[cid]);
+  }
+
+  // Money dodged: sum of headline neglect costs for completed (not skipped) tasks.
+  function avoidedCost(months, checks, skipped, year) {
+    var done = 0, low = 0, high = 0, unpriced = 0;
+    months.forEach(function (mo) {
+      mo.tasks.forEach(function (t) {
+        if (!taskDone(checks, t, year) || taskSkipped(checks, skipped, t, year)) return;
+        var r = parseNeglectDollars(t.neglect);
+        if (r) { done++; low += r.low; high += r.high; }
+        else unpriced++;
+      });
+    });
+    return { tasks: done, low: low, high: high, unpriced: unpriced };
+  }
+
+  // Tasks due in monthNum you can knock out fast (default: 15 minutes or less).
+  function quickWins(months, checks, skipped, year, monthNum, maxMinutes) {
+    var cap = maxMinutes == null ? 15 : maxMinutes;
+    var mo = months[monthNum - 1];
+    if (!mo) return [];
+    return mo.tasks.filter(function (t) {
+      if (taskDone(checks, t, year) || taskSkipped(checks, skipped, t, year)) return false;
+      var mins = effortMinutes(t.effort);
+      return mins != null && mins <= cap;
+    });
+  }
+
+  // ---- defer: push a task into next month instead of skipping it ----
+  function deferTask(deferred, task, year) {
+    var d = {}; for (var k in deferred) d[k] = deferred[k];
+    d[taskCheckId(task, year)] = true;
+    return d;
+  }
+  function undeferTask(deferred, task, year) {
+    var d = {}; for (var k in deferred) d[k] = deferred[k];
+    delete d[taskCheckId(task, year)];
+    return d;
+  }
+  function isDeferred(deferred, task, year) {
+    return !!(deferred && deferred[taskCheckId(task, year)]);
+  }
+  // Returns a copy of months with deferred tasks moved into the following
+  // month (tagged deferredFrom). Check-ids stay on the original month so
+  // done/skip state follows the task.
+  function applyDeferred(months, deferred, year) {
+    var out = months.map(function (mo) {
+      return { month: mo.month, name: mo.name, tasks: mo.tasks.slice() };
+    });
+    if (!deferred) return out;
+    for (var i = 0; i < out.length; i++) {
+      var kept = [], moved = [];
+      out[i].tasks.forEach(function (t) {
+        // deferredFrom marks a task already moved this pass — never move twice.
+        if (!t.deferredFrom && deferred[taskCheckId(t, year)]) {
+          var c = {}; for (var k in t) c[k] = t[k];
+          c.deferredFrom = out[i].name;
+          moved.push(c);
+        } else kept.push(t);
+      });
+      out[i].tasks = kept;
+      var next = out[(i + 1) % out.length];
+      next.tasks = next.tasks.concat(moved);
+    }
+    return out;
+  }
+
   g.HK.MONTH_NAMES = MONTH_NAMES;
   g.HK.matches = matches;
   g.HK.generatePlan = generatePlan;
@@ -160,4 +260,12 @@
   g.HK.yearProgress = yearProgress;
   g.HK.catchUp = catchUp;
   g.HK.searchTasks = searchTasks;
+  g.HK.parseNeglectDollars = parseNeglectDollars;
+  g.HK.effortMinutes = effortMinutes;
+  g.HK.avoidedCost = avoidedCost;
+  g.HK.quickWins = quickWins;
+  g.HK.deferTask = deferTask;
+  g.HK.undeferTask = undeferTask;
+  g.HK.isDeferred = isDeferred;
+  g.HK.applyDeferred = applyDeferred;
 })(typeof globalThis !== 'undefined' ? globalThis : this);

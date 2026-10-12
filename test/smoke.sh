@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# homekeeper-ai smoke tests — 11 checks. Exit non-zero on first failure.
+# homekeeper-ai smoke tests — 23 checks. Exit non-zero on first failure.
 set -u
 cd "$(dirname "$0")/.."
 PASS=0
@@ -105,5 +105,83 @@ check "new UI elements wired" bash -c "
 check "app.js wires skip button" bash -c "
   grep -q 'skipbtn' js/app.js && grep -q 'LS_SKIPPED' js/app.js
 "
+check "parseNeglectDollars parses dollar ranges" node -e "
+  require('./js/rules.js'); require('./js/planner.js');
+  var HK = globalThis.HK;
+  var r = HK.parseNeglectDollars('a \$250–\$600 repair');
+  if (!r || r.low !== 250 || r.high !== 600) { console.error(JSON.stringify(r)); process.exit(1); }
+  var r2 = HK.parseNeglectDollars('Emergency heat repair: \$300–\$1,500, usually on the coldest night.');
+  if (!r2 || r2.low !== 300 || r2.high !== 1500) { console.error(JSON.stringify(r2)); process.exit(1); }
+  var r3 = HK.parseNeglectDollars('A filter costs about \$5.');
+  if (!r3 || r3.low !== 5 || r3.high !== 5) { console.error(JSON.stringify(r3)); process.exit(1); }
+  if (HK.parseNeglectDollars('no dollars here') !== null) { console.error('false positive'); process.exit(1); }
+  console.log('parseNeglectDollars ok');
+"
+check "effortMinutes parses effort strings" node -e "
+  require('./js/rules.js'); require('./js/planner.js');
+  var HK = globalThis.HK;
+  var cases = [['5 min',5],['15 min',15],['30 min + wait',30],['1 hour',60],['1–2 hours',60],['2 hours',120],['half day',240],['book a visit',null],['',null]];
+  cases.forEach(function (c) {
+    var got = HK.effortMinutes(c[0]);
+    if (got !== c[1]) { console.error(c[0] + ' -> ' + got + ' expected ' + c[1]); process.exit(1); }
+  });
+  console.log('effortMinutes ok');
+"
+check "avoidedCost sums completed neglect costs" node -e "
+  require('./js/rules.js'); require('./js/planner.js');
+  var HK = globalThis.HK;
+  var months = [
+    { month: 1, name: 'January', tasks: [
+      { id: 'a', title: 'A', effort: '10 min', neglect: 'a \$250–\$600 repair', month: 1 },
+      { id: 'b', title: 'B', effort: '10 min', neglect: 'no cost note', month: 1 }
+    ]},
+    { month: 2, name: 'February', tasks: [
+      { id: 'c', title: 'C', effort: '10 min', neglect: 'a \$100 fix', month: 2 }
+    ]}
+  ];
+  var checks = { 'a:2026-1': true, 'b:2026-1': true };
+  var s = HK.avoidedCost(months, checks, {}, 2026);
+  if (s.tasks !== 1 || s.low !== 250 || s.high !== 600 || s.unpriced !== 1) { console.error(JSON.stringify(s)); process.exit(1); }
+  console.log('avoidedCost ok: ' + JSON.stringify(s));
+"
+check "quickWins lists only fast, undone tasks" node -e "
+  require('./js/rules.js'); require('./js/planner.js');
+  var HK = globalThis.HK;
+  var months = [{ month: 1, name: 'January', tasks: [
+    { id: 'a', title: 'A', effort: '5 min', month: 1 },
+    { id: 'b', title: 'B', effort: '2 hours', month: 1 },
+    { id: 'c', title: 'C', effort: '15 min', month: 1 },
+    { id: 'd', title: 'D', effort: 'book a visit', month: 1 }
+  ]}];
+  var checks = { 'a:2026-1': true };
+  var wins = HK.quickWins(months, checks, {}, 2026, 1, 15);
+  if (wins.length !== 1 || wins[0].id !== 'c') { console.error(JSON.stringify(wins.map(function(w){return w.id;}))); process.exit(1); }
+  console.log('quickWins ok');
+"
+check "defer moves a task to next month exactly once" node -e "
+  require('./js/rules.js'); require('./js/planner.js');
+  var HK = globalThis.HK;
+  var months = [
+    { month: 1, name: 'January', tasks: [{ id: 'a', title: 'A', effort: '10 min', month: 1 }] },
+    { month: 2, name: 'February', tasks: [] },
+    { month: 3, name: 'March', tasks: [] }
+  ];
+  var deferred = HK.deferTask({}, months[0].tasks[0], 2026);
+  var out = HK.applyDeferred(months, deferred, 2026);
+  if (out[0].tasks.length !== 0) { console.error('not removed from January'); process.exit(1); }
+  if (out[1].tasks.length !== 1 || out[1].tasks[0].deferredFrom !== 'January') { console.error('not moved to February'); process.exit(1); }
+  if (out[2].tasks.length !== 0) { console.error('cascaded to March'); process.exit(1); }
+  if (!HK.isDeferred(deferred, months[0].tasks[0], 2026)) { console.error('isDeferred false'); process.exit(1); }
+  var back = HK.undeferTask(deferred, months[0].tasks[0], 2026);
+  if (HK.isDeferred(back, months[0].tasks[0], 2026)) { console.error('undefer failed'); process.exit(1); }
+  console.log('defer ok');
+"
+check "new UI elements wired (savings, quick wins, defer)" bash -c "
+  grep -q 'id=\"savings\"' index.html &&
+  grep -q 'id=\"quickWins\"' index.html &&
+  grep -q 'LS_DEFERRED' js/app.js &&
+  grep -q 'renderSavings' js/app.js &&
+  grep -q 'renderQuickWins' js/app.js
+"
 
-echo "SMOKE: $PASS/17 passed"
+echo "SMOKE: $PASS/23 passed"

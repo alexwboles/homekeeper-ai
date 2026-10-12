@@ -7,6 +7,7 @@
   var LS_WEEKS = 'hk_weeks_v1';     // ["2026-W39", ...] completed weeks
   var LS_CUSTOM = 'hk_custom_v1';   // [{id,title,desc,effort,neglect,months:[]}]
   var LS_SKIPPED = 'hk_skipped_v1'; // { "taskId:YYYY-M": true } skipped this month
+  var LS_DEFERRED = 'hk_deferred_v1'; // { "taskId:YYYY-M": true } pushed to next month
 
   function load(k, fb) {
     try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }
@@ -19,6 +20,7 @@
   var weeksDone = load(LS_WEEKS, []);
   var customTasks = load(LS_CUSTOM, []);
   var skipped = load(LS_SKIPPED, {});
+  var deferred = load(LS_DEFERRED, {});
 
   function el(id) { return document.getElementById(id); }
 
@@ -46,7 +48,7 @@
   }
 
   function plan() {
-    return HK.generatePlan(profile, customTasks);
+    return HK.applyDeferred(HK.generatePlan(profile, customTasks), deferred, new Date().getFullYear());
   }
 
   function checkId(task, year) {
@@ -110,6 +112,13 @@
       sk.textContent = 'Skipped this month';
       body.appendChild(sk);
     }
+    var isDeferred = !done && HK.isDeferred(deferred, t, year);
+    if (isDeferred) {
+      var df = document.createElement('div');
+      df.className = 'skipnote';
+      df.textContent = 'Deferred from ' + (t.deferredFrom || 'last month') + ' — due this month';
+      body.appendChild(df);
+    }
     label.appendChild(box); label.appendChild(body);
     div.appendChild(label);
     var skipBtn = document.createElement('button');
@@ -124,6 +133,18 @@
       renderAll();
     });
     div.appendChild(skipBtn);
+    var deferBtn = document.createElement('button');
+    deferBtn.type = 'button';
+    deferBtn.className = 'skipbtn';
+    deferBtn.textContent = isDeferred ? 'Undefer' : 'Defer';
+    deferBtn.title = isDeferred ? 'Move it back to its original month' : 'Push to next month';
+    deferBtn.addEventListener('click', function () {
+      if (isDeferred) deferred = HK.undeferTask(deferred, t, year);
+      else { deferred = HK.deferTask(deferred, t, year); delete skipped[cid]; delete checks[cid]; }
+      save(LS_DEFERRED, deferred); save(LS_SKIPPED, skipped); save(LS_CHECKS, checks);
+      renderAll();
+    });
+    div.appendChild(deferBtn);
     return div;
   }
 
@@ -142,8 +163,32 @@
     }
     tasks.forEach(function (t) { wrap.appendChild(taskCard(t, year)); });
     el('weekCount').textContent = tasks.length + ' task' + (tasks.length === 1 ? '' : 's');
+    renderSavings(months, year);
+    renderQuickWins(months, year, m);
     renderCatchUp(months, year, m);
     updateWeekProgress();
+  }
+
+  function fmtDollars(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
+
+  // Money dodged: headline repair costs avoided by completing tasks this year.
+  function renderSavings(months, year) {
+    var s = HK.avoidedCost(months, checks, skipped, year);
+    var wrap = el('savings');
+    if (!s.tasks) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    wrap.innerHTML = '<strong>' + fmtDollars(s.low) + '–' + fmtDollars(s.high) + '</strong>' +
+      ' in repairs dodged so far this year (' + s.tasks + ' task' + (s.tasks === 1 ? '' : 's') + ' done)';
+  }
+
+  // Fast tasks due this month: knock them out in one coffee break.
+  function renderQuickWins(months, year, m) {
+    var wins = HK.quickWins(months, checks, skipped, year, m, 15);
+    var wrap = el('quickWins');
+    if (!wins.length) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    wrap.innerHTML = '<h3>Quick wins — 15 minutes or less (' + wins.length + ')</h3>';
+    wins.forEach(function (t) { wrap.appendChild(taskCard(t, year)); });
   }
 
   // Incomplete tasks from earlier months, so they don't silently vanish.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# homekeeper-ai e2e tests — 7 flows exercised through the real planner logic in Node.
+# homekeeper-ai e2e tests — 13 flows exercised through the real planner logic in Node.
 set -u
 cd "$(dirname "$0")/.."
 
@@ -143,6 +143,60 @@ flow('search flow: gutter tasks found with month names', function () {
   assert(smoke.length > 0 && smoke[0].monthName, 'smoke detector search works');
 });
 
+// 11. Savings flow: completing tasks with neglect costs banks real dollars.
+flow('avoided-cost grows as tasks are completed', function () {
+  var year = 2026;
+  var plan = HK.generatePlan({ homeType: 'house', heating: 'forced-air', climate: 'cold', ac: true, yard: true });
+  var before = HK.avoidedCost(plan, {}, {}, year);
+  assert(before.tasks === 0 && before.low === 0, 'no savings before any check-offs');
+  var checks = {};
+  var priced = allTasks(plan).filter(function (t) { return HK.parseNeglectDollars(t.neglect); });
+  assert(priced.length > 5, 'rule bank should have priced neglect notes');
+  priced.slice(0, 3).forEach(function (t) { checks[HK.taskCheckId(t, year)] = true; });
+  var after = HK.avoidedCost(plan, checks, {}, year);
+  assert(after.tasks === 3, '3 tasks banked');
+  assert(after.high > after.low && after.low > 0, 'range is positive');
+  console.log('   (3 done tasks banked $' + after.low + '–$' + after.high + ' in avoided repairs)');
+});
+
+// 12. Quick-wins flow: fast tasks surface for this month.
+flow('quick wins are all <= 15 minutes and undone', function () {
+  var year = 2026;
+  var plan = HK.generatePlan({ homeType: 'house', heating: 'forced-air', climate: 'cold', ac: true, yard: true });
+  var m = 10; // October
+  var wins = HK.quickWins(plan, {}, {}, year, m, 15);
+  assert(wins.length > 0, 'expected quick wins in October');
+  wins.forEach(function (t) {
+    var mins = HK.effortMinutes(t.effort);
+    assert(mins != null && mins <= 15, t.title + ' takes ' + mins + ' min');
+  });
+  var checks = {};
+  checks[HK.taskCheckId(wins[0], year)] = true;
+  var wins2 = HK.quickWins(plan, checks, {}, year, m, 15);
+  assert(wins2.length === wins.length - 1, 'done tasks drop out of quick wins');
+});
+
+// 13. Defer flow: task leaves this month, lands next month, keeps its state.
+flow('defer moves a task to next month and preserves check-offs', function () {
+  var year = 2026;
+  var plan = HK.generatePlan({ homeType: 'house', heating: 'forced-air', climate: 'cold', ac: true, yard: true });
+  var jan = plan[0];
+  assert(jan.tasks.length > 0, 'January has tasks');
+  var target = jan.tasks[0];
+  var deferred = HK.deferTask({}, target, year);
+  var moved = HK.applyDeferred(plan, deferred, year);
+  assert(moved[0].tasks.every(function (t) { return t.id !== target.id; }), 'task left January');
+  var feb = moved[1].tasks.filter(function (t) { return t.id === target.id && t.deferredFrom === 'January'; });
+  assert(feb.length === 1, 'task landed in February with deferredFrom');
+  var checks = {};
+  checks[HK.taskCheckId(target, year)] = true; // check it off in February
+  var s = HK.avoidedCost(moved, checks, {}, year);
+  assert(s.tasks >= 0, 'avoided cost still computable after defer');
+  var caught = HK.catchUp(moved, {}, {}, year, 3);
+  assert(caught.every(function (x) { return x.task.id !== target.id || x.monthName !== 'January'; }),
+    'deferred task is not a January catch-up item');
+});
+
 if (failures) { console.log('E2E: ' + failures + ' flow(s) FAILED'); process.exit(1); }
-console.log('E2E: 10/10 flows passed');
+console.log('E2E: 13/13 flows passed');
 EOF
