@@ -238,3 +238,16 @@ check "new UI elements wired (risk line, notes, vendors)" bash -c "
 "
 
 echo "SMOKE: $PASS/25 passed"
+
+# redesign sweep: tab badges, seasonal year cells, neglect stamp
+node -e "
+var fs = require('fs'), a = fs.readFileSync('./js/app.js', 'utf8');
+['tbadge', 'season-', 'IF SKIPPED'].forEach(function (s) {
+  var src = s === 'IF SKIPPED' ? fs.readFileSync('./css/style.css', 'utf8') : a;
+  if (src.indexOf(s) < 0) { console.error('missing ' + s); process.exit(1); }
+});
+var c = fs.readFileSync('./css/style.css', 'utf8');
+['.yom.season-win', '.yom.season-spr', '.yom.season-sum', '.yom.season-fal', '.neglect::before'].forEach(function (s) {
+  if (c.indexOf(s) < 0) { console.error('css missing ' + s); process.exit(1); }
+});
+console.log('OK');" 2>/dev/null && { echo "PASS: tab badges + seasonal cells + neglect stamp"; PASS=$((PASS+1)); } || { echo "FAIL: redesign checks"; exit 1; }

@@ -309,11 +309,14 @@
     var body = el('monthBody');
     tabs.innerHTML = '';
     var active = now.getMonth(); // 0-based
+    var seasons = ['win', 'win', 'spr', 'spr', 'spr', 'sum', 'sum', 'sum', 'fal', 'fal', 'fal', 'win'];
     months.forEach(function (mo, idx) {
+      var open = mo.tasks.filter(function (t) { return !checks[checkId(t, year)] && !skipped[checkId(t, year)]; }).length;
       var b = document.createElement('button');
       b.type = 'button';
-      b.className = 'tab' + (idx === active ? ' active' : '');
-      b.textContent = mo.name.slice(0, 3) + ' (' + mo.tasks.length + ')';
+      b.className = 'tab season-' + seasons[idx] + (idx === active ? ' active' : '');
+      b.innerHTML = mo.name.slice(0, 3) + ' <span class="tbadge">' + open + '</span>';
+      b.title = mo.name + ': ' + open + ' of ' + mo.tasks.length + ' tasks open';
       b.addEventListener('click', function () {
         active = idx;
         el('planSearch').value = '';
@@ -347,11 +350,12 @@
   // Month-by-month completion strip above the plan tabs.
   function renderYearOverview(months, year) {
     var prog = HK.yearProgress(months, checks, skipped, year);
+    var seasons = ['win', 'win', 'spr', 'spr', 'spr', 'sum', 'sum', 'sum', 'fal', 'fal', 'fal', 'win'];
     var wrap = el('yearOverview');
-    wrap.innerHTML = prog.map(function (p) {
+    wrap.innerHTML = prog.map(function (p, idx) {
       var pct = p.total ? Math.round(p.done / p.total * 100) : 100;
       var label = p.done + '/' + p.total + (p.skipped ? ' · ' + p.skipped + ' skipped' : '');
-      return '<div class="yom" title="' + p.name + ': ' + label + '">' +
+      return '<div class="yom season-' + seasons[idx] + '" title="' + p.name + ': ' + label + '">' +
         '<span class="yom-name">' + p.name.slice(0, 3) + '</span>' +
         '<span class="yom-bar"><span style="width:' + pct + '%"></span></span>' +
         '<span class="yom-num">' + label + '</span></div>';

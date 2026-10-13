@@ -155,10 +155,11 @@ legend { font-weight: 700; font-size: 13.5px; color: var(--ink-soft); padding: 0
 .task.done .task-title { text-decoration: line-through; color: var(--muted); }
 .task.done .task-desc, .task.done .task-meta { color: #b3ac99; }
 .neglect {
-  margin-top: 8px; font-size: 13px; color: var(--amber);
-  background: var(--amber-soft); border-left: 3px solid var(--amber);
+  margin-top: 8px; font-size: 13px; color: #7c2d12;
+  background: var(--amber-soft); border: 1px solid #e8b98a; border-left: 4px solid var(--amber);
   border-radius: 0; padding: 8px 12px; max-width: 640px;
 }
+.neglect::before { content: "IF SKIPPED — "; font-weight: 800; font-size: 11px; letter-spacing: .08em; }
 
 /* ---------- month ribbon ---------- */
 .tabs {
@@ -261,3 +262,19 @@ footer { padding: 30px 20px 10px; }
 .tasknote { margin-top: 8px; }
 .note-text { font-size: 13px; color: var(--ink-soft); background: #f7f4ea; border: 1px solid var(--line); border-radius: 0; padding: 6px 10px; margin-bottom: 6px; }
 .note-input { width: 100%; margin-bottom: 6px; }
+
+/* ---------- 2026 redesign: tab badges + seasonal year cells ---------- */
+.tab .tbadge {
+  display: inline-block; min-width: 22px; text-align: center;
+  font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums;
+  background: var(--paper-deep); color: var(--ink-soft);
+  padding: 1px 6px; margin-left: 5px; border: 1px solid var(--line);
+}
+.tab.active .tbadge { background: rgba(255,255,255,.22); color: #fff; border-color: transparent; }
+.yov { display: grid; grid-template-columns: repeat(12, 1fr); gap: 6px; }
+.yom { border: 1px solid var(--line-soft); padding: 8px 6px; font-size: 12px; text-align: center; }
+.yom.season-win { background: #eef4f8; }
+.yom.season-spr { background: #f2f8ec; }
+.yom.season-sum { background: #fdf6e7; }
+.yom.season-fal { background: #faf0e3; }
+.yom-bar { height: 5px; background: rgba(255,255,255,.7); outline: 1px solid var(--line-soft); }
