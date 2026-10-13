@@ -264,6 +264,64 @@
   g.HK.effortMinutes = effortMinutes;
   g.HK.avoidedCost = avoidedCost;
   g.HK.quickWins = quickWins;
+  // ---- money at risk: neglect costs of everything still open this year ----
+  // The complement of avoidedCost: tasks neither done nor skipped.
+  function riskExposure(months, checks, skipped, year) {
+    var low = 0, high = 0, tasks = 0, unpriced = 0;
+    months.forEach(function (mo) {
+      mo.tasks.forEach(function (t) {
+        if (taskDone(checks, t, year) || taskSkipped(checks, skipped, t, year)) return;
+        var r = parseNeglectDollars(t.neglect);
+        if (r) { tasks++; low += r.low; high += r.high; }
+        else unpriced++;
+      });
+    });
+    return { tasks: tasks, low: low, high: high, unpriced: unpriced };
+  }
+
+  // ---- completion notes: {checkId: text}, pure in/out ----
+  function setNote(notes, task, year, text) {
+    var n = {};
+    for (var k in notes) n[k] = notes[k];
+    var t = String(text == null ? "" : text).trim();
+    if (t) n[taskCheckId(task, year)] = t;
+    else delete n[taskCheckId(task, year)];
+    return n;
+  }
+  function getNote(notes, task, year) {
+    return (notes && notes[taskCheckId(task, year)]) || "";
+  }
+
+  // ---- pro hint: tasks whose effort means hiring out ----
+  function needsPro(task) {
+    return /book a visit|call a pro|hire/i.test(String((task && task.effort) || ""));
+  }
+
+  // ---- vendor rolodex: [{id, name, trade, phone, notes}] ----
+  function addVendor(vendors, v) {
+    vendors = vendors || [];
+    var name = String((v && v.name) || "").trim();
+    if (!name) return { ok: false, error: "Vendor needs a name." };
+    var vendor = {
+      id: "v" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36),
+      name: name,
+      trade: String((v && v.trade) || "").trim(),
+      phone: String((v && v.phone) || "").trim(),
+      notes: String((v && v.notes) || "").trim()
+    };
+    vendors.push(vendor);
+    return { ok: true, vendor: vendor, vendors: vendors };
+  }
+  function deleteVendor(vendors, id) {
+    return (vendors || []).filter(function (v) { return v.id !== id; });
+  }
+
+  g.HK.riskExposure = riskExposure;
+  g.HK.setNote = setNote;
+  g.HK.getNote = getNote;
+  g.HK.needsPro = needsPro;
+  g.HK.addVendor = addVendor;
+  g.HK.deleteVendor = deleteVendor;
   g.HK.deferTask = deferTask;
   g.HK.undeferTask = undeferTask;
   g.HK.isDeferred = isDeferred;

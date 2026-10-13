@@ -183,5 +183,58 @@ check "new UI elements wired (savings, quick wins, defer)" bash -c "
   grep -q 'renderSavings' js/app.js &&
   grep -q 'renderQuickWins' js/app.js
 "
+check "planner exports riskExposure/setNote/getNote/needsPro/addVendor/deleteVendor" node -e "
+  require('./js/planner.js');
+  var HK = globalThis.HK;
+  ['riskExposure','setNote','getNote','needsPro','addVendor','deleteVendor'].forEach(function (f) {
+    if (typeof HK[f] !== 'function') { console.error('missing ' + f); process.exit(1); }
+  });
+  // riskExposure: priced open tasks counted, done/skipped excluded
+  var months = [{ month: 1, name: 'January', tasks: [
+    { id: 'a', title: 'A', neglect: 'a \$250–\$600 repair', month: 1 },
+    { id: 'b', title: 'B', neglect: 'a \$100 job', month: 1 },
+    { id: 'c', title: 'C', neglect: '', month: 1 }
+  ]}];
+  var open = HK.riskExposure(months, {}, {}, 2026);
+  if (open.tasks !== 2 || open.low !== 350 || open.high !== 700 || open.unpriced !== 1) { console.error(JSON.stringify(open)); process.exit(1); }
+  var done = HK.riskExposure(months, { 'a:2026-1': true }, {}, 2026);
+  if (done.tasks !== 1 || done.low !== 100) { console.error(JSON.stringify(done)); process.exit(1); }
+  var skipped = HK.riskExposure(months, {}, { 'a:2026-1': true, 'b:2026-1': true }, 2026);
+  if (skipped.tasks !== 0) { console.error(JSON.stringify(skipped)); process.exit(1); }
+  // notes: set/get round-trip, blank clears, input map untouched
+  var t = { id: 'a', month: 1 };
+  var n0 = {};
+  var n1 = HK.setNote(n0, t, 2026, 'Filter size 16x25x1');
+  if (HK.getNote(n1, t, 2026) !== 'Filter size 16x25x1') process.exit(1);
+  if (Object.keys(n0).length !== 0) { console.error('mutated input'); process.exit(1); }
+  var n2 = HK.setNote(n1, t, 2026, '   ');
+  if (HK.getNote(n2, t, 2026) !== '') process.exit(1);
+  if (HK.getNote({}, t, 2026) !== '') process.exit(1);
+  // needsPro: pro-language effort strings detected
+  if (!HK.needsPro({ effort: 'book a visit' })) process.exit(1);
+  if (!HK.needsPro({ effort: 'Call a pro' })) process.exit(1);
+  if (HK.needsPro({ effort: '10 min' })) process.exit(1);
+  if (HK.needsPro({})) process.exit(1);
+  // vendors: validation, add, delete
+  var bad = HK.addVendor([], { name: '   ' });
+  if (bad.ok) { console.error('blank vendor accepted'); process.exit(1); }
+  var good = HK.addVendor([], { name: \"Mike's HVAC\", trade: 'HVAC', phone: '555-1234', notes: 'great' });
+  if (!good.ok || good.vendors.length !== 1 || !good.vendor.id) process.exit(1);
+  if (good.vendor.name !== \"Mike's HVAC\" || good.vendor.trade !== 'HVAC') process.exit(1);
+  var kept = HK.deleteVendor(good.vendors, 'nope');
+  if (kept.length !== 1) process.exit(1);
+  var gone = HK.deleteVendor(good.vendors, good.vendor.id);
+  if (gone.length !== 0) process.exit(1);
+  console.log('risk/notes/vendors ok');
+"
+check "new UI elements wired (risk line, notes, vendors)" bash -c "
+  grep -q 'id=\"vendorSection\"' index.html &&
+  grep -q 'id=\"vendorList\"' index.html &&
+  grep -q 'id=\"addVendor\"' index.html &&
+  grep -q 'renderVendors' js/app.js &&
+  grep -q 'riskExposure' js/app.js &&
+  grep -q 'needsPro' js/app.js &&
+  grep -q 'LS_VENDORS' js/app.js
+"
 
-echo "SMOKE: $PASS/23 passed"
+echo "SMOKE: $PASS/25 passed"

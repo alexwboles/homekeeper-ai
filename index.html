@@ -118,6 +118,20 @@
     <div id="customList"></div>
   </section>
 
+  <!-- Vendors -->
+  <section class="card" id="vendorSection" style="display:none">
+    <h2>5 · My pros</h2>
+    <p class="muted">Your trusted contractors — one glance when a task says "call a pro".</p>
+    <div class="grid">
+      <label>Name <input type="text" id="vName" placeholder="e.g. Mike's HVAC" maxlength="60"></label>
+      <label>Trade <input type="text" id="vTrade" placeholder="e.g. HVAC, plumber, electrician" maxlength="40"></label>
+      <label>Phone <input type="tel" id="vPhone" placeholder="e.g. 555-1234" maxlength="30"></label>
+    </div>
+    <label>Notes <input type="text" id="vNotes" placeholder="e.g. Great with the old furnace" maxlength="140"></label>
+    <div class="row"><button type="button" id="addVendor" class="primary">Add pro</button></div>
+    <div id="vendorList"></div>
+  </section>
+
   <footer class="muted center">
     HomeKeeper AI runs entirely in your browser — no account, no tracking, no data leaves this device.
   </footer>

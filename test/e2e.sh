@@ -197,6 +197,43 @@ flow('defer moves a task to next month and preserves check-offs', function () {
     'deferred task is not a January catch-up item');
 });
 
+// 14. Risk exposure is the complement of avoided cost: done + open = priced total.
+flow('risk exposure complements avoided cost', function () {
+  var profile = { homeType: 'house', heating: 'forced-air', climate: 'cold', yard: true };
+  var year = new Date().getFullYear();
+  var plan = HK.generatePlan(profile, []);
+  var all = allTasks(plan);
+  var priced = all.filter(function (t) { return HK.parseNeglectDollars(t.neglect); }).length;
+  var r0 = HK.riskExposure(plan, {}, {}, year);
+  assert(r0.tasks === priced, 'all priced tasks at risk with nothing done');
+  var checks = {};
+  checks[HK.taskCheckId(all[0], year)] = true;
+  var r1 = HK.riskExposure(plan, checks, {}, year);
+  var s1 = HK.avoidedCost(plan, checks, {}, year);
+  assert(r1.tasks + s1.tasks === priced, 'done + at-risk covers every priced task');
+});
+
+// 15. Completion notes stick to the task instance and clear cleanly.
+flow('completion notes round-trip', function () {
+  var t = { id: 'furnace-filter', month: 3 };
+  var n = HK.setNote({}, t, 2026, 'Filter size 16x25x1, arrow toward furnace');
+  assert(HK.getNote(n, t, 2026) === 'Filter size 16x25x1, arrow toward furnace', 'note stored');
+  assert(HK.getNote(n, { id: 'furnace-filter', month: 4 }, 2026) === '', 'note is per month-instance');
+  var cleared = HK.setNote(n, t, 2026, '');
+  assert(HK.getNote(cleared, t, 2026) === '', 'blank clears the note');
+});
+
+// 16. Vendor rolodex + pro hints on hire-out tasks.
+flow('vendor rolodex and pro hints', function () {
+  var res = HK.addVendor([], { name: 'Acme Plumbing', trade: 'Plumber', phone: '555-0100' });
+  assert(res.ok && res.vendors.length === 1, 'vendor added');
+  assert(HK.deleteVendor(res.vendors, res.vendor.id).length === 0, 'vendor removed');
+  var plan = HK.generatePlan({ homeType: 'house', heating: 'forced-air', climate: 'cold' }, []);
+  var proTasks = allTasks(plan).filter(HK.needsPro);
+  assert(proTasks.length >= 1, 'expected hire-out tasks, got ' + proTasks.length);
+  assert(proTasks.every(function (t) { return /book a visit|call a pro|hire/i.test(t.effort); }), 'hints match pro language');
+});
+
 if (failures) { console.log('E2E: ' + failures + ' flow(s) FAILED'); process.exit(1); }
-console.log('E2E: 13/13 flows passed');
+console.log('E2E: 16/16 flows passed');
 EOF

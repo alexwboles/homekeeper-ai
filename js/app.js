@@ -8,6 +8,8 @@
   var LS_CUSTOM = 'hk_custom_v1';   // [{id,title,desc,effort,neglect,months:[]}]
   var LS_SKIPPED = 'hk_skipped_v1'; // { "taskId:YYYY-M": true } skipped this month
   var LS_DEFERRED = 'hk_deferred_v1'; // { "taskId:YYYY-M": true } pushed to next month
+  var LS_NOTES = 'hk_notes_v1';     // { "taskId:YYYY-M": "filter size 16x25x1" }
+  var LS_VENDORS = 'hk_vendors_v1';  // [{id,name,trade,phone,notes}]
 
   function load(k, fb) {
     try { var v = localStorage.getItem(k); return v ? JSON.parse(v) : fb; }
@@ -21,6 +23,8 @@
   var customTasks = load(LS_CUSTOM, []);
   var skipped = load(LS_SKIPPED, {});
   var deferred = load(LS_DEFERRED, {});
+  var notes = load(LS_NOTES, {});
+  var vendors = load(LS_VENDORS, []);
 
   function el(id) { return document.getElementById(id); }
 
@@ -60,14 +64,17 @@
       el('planSection').style.display = 'none';
       el('weekSection').style.display = 'none';
       el('customSection').style.display = 'none';
+      el('vendorSection').style.display = 'none';
       return;
     }
     el('planSection').style.display = '';
     el('weekSection').style.display = '';
     el('customSection').style.display = '';
+    el('vendorSection').style.display = '';
     renderWeek();
     renderPlan();
     renderCustom();
+    renderVendors();
     renderStreak();
   }
 
@@ -106,6 +113,59 @@
       n.textContent = t.neglect;
       body.appendChild(n);
     }
+    if (HK.needsPro(t)) {
+      var ph = document.createElement('div');
+      ph.className = 'prohint';
+      var pa = document.createElement('a');
+      pa.href = '#vendorSection';
+      pa.textContent = 'Needs a pro? See My pros';
+      ph.appendChild(pa);
+      body.appendChild(ph);
+    }
+    // Completion note: freeform text pinned to this task instance (e.g. filter size).
+    var noteWrap = document.createElement('div');
+    noteWrap.className = 'tasknote';
+    (function paintNote() {
+      noteWrap.innerHTML = '';
+      var existing = HK.getNote(notes, t, year);
+      if (existing) {
+        var p = document.createElement('div');
+        p.className = 'note-text';
+        p.textContent = 'Note: ' + existing;
+        noteWrap.appendChild(p);
+      }
+      var nb = document.createElement('button');
+      nb.type = 'button';
+      nb.className = 'skipbtn';
+      nb.textContent = existing ? 'Edit note' : 'Add note';
+      nb.addEventListener('click', function () {
+        noteWrap.innerHTML = '';
+        var inp = document.createElement('input');
+        inp.type = 'text';
+        inp.maxLength = 140;
+        inp.value = existing;
+        inp.placeholder = 'e.g. Filter size 16x25x1';
+        inp.className = 'note-input';
+        inp.setAttribute('aria-label', 'Task note');
+        var sv = document.createElement('button');
+        sv.type = 'button';
+        sv.className = 'skipbtn';
+        sv.textContent = 'Save';
+        sv.addEventListener('click', function () {
+          notes = HK.setNote(notes, t, year, inp.value);
+          save(LS_NOTES, notes);
+          renderAll();
+        });
+        inp.addEventListener('keydown', function (ev) {
+          if (ev.key === 'Enter') { ev.preventDefault(); sv.click(); }
+        });
+        noteWrap.appendChild(inp);
+        noteWrap.appendChild(sv);
+        inp.focus();
+      });
+      noteWrap.appendChild(nb);
+    })();
+    body.appendChild(noteWrap);
     if (isSkipped) {
       var sk = document.createElement('div');
       sk.className = 'skipnote';
@@ -171,14 +231,20 @@
 
   function fmtDollars(n) { return '$' + Math.round(n).toLocaleString('en-US'); }
 
-  // Money dodged: headline repair costs avoided by completing tasks this year.
+  // Money dodged (done tasks) + money at risk (still-open tasks).
   function renderSavings(months, year) {
     var s = HK.avoidedCost(months, checks, skipped, year);
+    var r = HK.riskExposure(months, checks, skipped, year);
     var wrap = el('savings');
-    if (!s.tasks) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
-    wrap.style.display = '';
-    wrap.innerHTML = '<strong>' + fmtDollars(s.low) + '–' + fmtDollars(s.high) + '</strong>' +
+    var html = '';
+    if (s.tasks) html += '<strong>' + fmtDollars(s.low) + '–' + fmtDollars(s.high) + '</strong>' +
       ' in repairs dodged so far this year (' + s.tasks + ' task' + (s.tasks === 1 ? '' : 's') + ' done)';
+    if (r.tasks) html += (html ? '<br>' : '') + '<span class="riskline">Still at risk: <strong>' +
+      fmtDollars(r.low) + '–' + fmtDollars(r.high) + '</strong> if ' + r.tasks + ' open task' +
+      (r.tasks === 1 ? '' : 's') + ' stay undone</span>';
+    if (!html) { wrap.innerHTML = ''; wrap.style.display = 'none'; return; }
+    wrap.style.display = '';
+    wrap.innerHTML = html;
   }
 
   // Fast tasks due this month: knock them out in one coffee break.
@@ -345,6 +411,35 @@
     });
   }
 
+  // ---------- Vendors (my pros) ----------
+  function renderVendors() {
+    var list = el('vendorList');
+    list.innerHTML = '';
+    if (!vendors.length) {
+      list.innerHTML = '<p class="empty">No pros saved yet. Add your HVAC tech, plumber, electrician — whoever you actually call.</p>';
+      return;
+    }
+    vendors.forEach(function (v) {
+      var div = document.createElement('div');
+      div.className = 'custom-row';
+      var span = document.createElement('span');
+      span.textContent = v.name + (v.trade ? ' — ' + v.trade : '') +
+        (v.phone ? ' · ' + v.phone : '') + (v.notes ? ' (' + v.notes + ')' : '');
+      var del = document.createElement('button');
+      del.type = 'button';
+      del.className = 'danger';
+      del.textContent = 'Remove';
+      del.addEventListener('click', function () {
+        vendors = HK.deleteVendor(vendors, v.id);
+        save(LS_VENDORS, vendors);
+        renderVendors();
+      });
+      div.appendChild(span);
+      div.appendChild(del);
+      list.appendChild(div);
+    });
+  }
+
   function monthOptions() {
     return HK.MONTH_NAMES.map(function (n, i) {
       return '<label class="mchk"><input type="checkbox" value="' + (i + 1) + '"> ' + n.slice(0, 3) + '</label>';
@@ -365,9 +460,9 @@
       document.getElementById('weekSection').scrollIntoView();
     });
     el('resetProfile').addEventListener('click', function () {
-      profile = null; checks = {}; weeksDone = []; skipped = {};
+      profile = null; checks = {}; weeksDone = []; skipped = {}; notes = {};
       save(LS_PROFILE, null); save(LS_CHECKS, checks); save(LS_WEEKS, weeksDone);
-      save(LS_SKIPPED, skipped);
+      save(LS_SKIPPED, skipped); save(LS_NOTES, notes);
       fillForm(); renderAll();
     });
     el('addCustom').addEventListener('click', function () {
@@ -389,6 +484,17 @@
       else renderPlan();
     });
     el('printWeek').addEventListener('click', function () { window.print(); });
+    el('addVendor').addEventListener('click', function () {
+      var res = HK.addVendor(vendors, {
+        name: el('vName').value, trade: el('vTrade').value,
+        phone: el('vPhone').value, notes: el('vNotes').value
+      });
+      if (!res.ok) { el('vName').focus(); return; }
+      vendors = res.vendors;
+      save(LS_VENDORS, vendors);
+      el('vName').value = ''; el('vTrade').value = ''; el('vPhone').value = ''; el('vNotes').value = '';
+      renderVendors();
+    });
     renderAll();
   }
 

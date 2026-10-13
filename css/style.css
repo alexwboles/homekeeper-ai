@@ -253,3 +253,11 @@ footer { padding: 30px 20px 10px; }
   .skipbtn, .week-actions #printWeek, .catchup { display: none !important; }
   .task { break-inside: avoid; }
 }
+
+/* money at risk + pro hints + completion notes */
+.riskline { color: #a16207; }
+.prohint { margin-top: 6px; font-size: 13px; }
+.prohint a { color: var(--emerald); font-weight: 600; }
+.tasknote { margin-top: 8px; }
+.note-text { font-size: 13px; color: var(--ink-soft); background: #f7f4ea; border: 1px solid var(--line); border-radius: 0; padding: 6px 10px; margin-bottom: 6px; }
+.note-input { width: 100%; margin-bottom: 6px; }
